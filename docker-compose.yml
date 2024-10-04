@@ -1,0 +1,45 @@
+# docker-compose.yml
+version: '3'
+services:
+  orchestrator:
+    build:
+      context: ./orchestrator
+    image: orchestrator-image
+    container_name: orchestrator
+    volumes:
+      - ./orchestrator:/app
+      - ./scripts:/scripts
+    ports:
+      - "3000:3000"
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+
+  worker:
+    build:
+      context: ./worker
+    image: worker-image
+    container_name: worker
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      SCRIPTS_SERVER_URL: http://orchestrator:3000
+      ORCHESTRATOR_RESULT_URL: http://orchestrator:3000/results
+    depends_on:
+      - orchestrator
+      - rabbitmq
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
